@@ -4462,6 +4462,189 @@ btnMovein.addEventListener('click', event => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function renderCustomerReview(report = preparationReport) {
+    const grid = document.getElementById('reviewRecoGrid');
+    if (!grid) return;
+
+    const aiRecommendations = Array.isArray(aiData?.recommendations)
+      ? aiData.recommendations
+      : [];
+
+    if (aiRecommendations.length) {
+      grid.innerHTML = aiRecommendations.slice(0, 3).map((item, index) => `
+        <article class="review-reco-card">
+          <span>${esc(String(index + 1).padStart(2, '0'))}</span>
+          <h3>${esc(item.title || 'Review this recommendation')}</h3>
+          <p>${esc(item.summary || item.reason || item.nextAction || '')}</p>
+        </article>
+      `).join('');
+      return;
+    }
+
+    const guide = aiData?.guide || {};
+    const brand = aiData?.brand || {};
+    const palette = aiData?.palette || aiData?.colors || [];
+    const selected = aiData?.selectedAssets || {};
+    const typography = aiData?.typography || {};
+    const preflight = Array.isArray(aiData?.preflight) ? aiData.preflight : [];
+    const assetReport = Array.isArray(aiData?.assetReport) ? aiData.assetReport : [];
+    const assignments = Array.isArray(aiData?.assetAssignments) ? aiData.assetAssignments : [];
+
+    const categoryCounts = report?.categoryCounts || {};
+    const fileCount = report?.preparedFileCount || report?.preparedCount || orgAssets.length || 0;
+
+    const logoCount = categoryCounts['Logos'] || 0;
+    const iconCount = categoryCounts['Icons'] || 0;
+    const guidelineCount = categoryCounts['Brand Guidelines'] || 0;
+    const fontCount = categoryCounts['Typography / Fonts'] || 0;
+    const docCount =
+      (categoryCounts['Documents'] || 0) +
+      (categoryCounts['Presentations'] || 0);
+
+    const brandName =
+      guide.clientName ||
+      brand.name ||
+      (typeof guessClientNameFromFiles === 'function' ? guessClientNameFromFiles(staged || []) : '') ||
+      'this brand';
+
+    const primaryLogo =
+      selected.primaryLogo ||
+      selected.heroLogo ||
+      assetReport.find(a => /primary logo|lead logo|logo/i.test(a.assetRole || ''))?.name ||
+      orgAssets.find(a => /PrimaryLogo|Logo/i.test(a.role || a.label || ''))?.originalName ||
+      '';
+
+    const iconMark =
+      selected.iconMark ||
+      selected.iconVariant ||
+      assetReport.find(a => /icon|mark|symbol/i.test(a.assetRole || ''))?.name ||
+      orgAssets.find(a => /Icon|Mark/i.test(a.role || a.label || ''))?.originalName ||
+      '';
+
+    const referenceFiles = assetReport.filter(a =>
+      /guideline|reference|document|presentation|print|source/i.test(
+        `${a.assetRole || ''} ${a.placement || ''} ${a.reason || ''}`
+      )
+    );
+
+    const visualAssets = assetReport.filter(a =>
+      /logo|icon|mark|avatar|header|visual|identity/i.test(
+        `${a.assetRole || ''} ${a.placement || ''} ${a.reason || ''}`
+      )
+    );
+
+    const hasTypography =
+      Boolean(typography.displayFont) ||
+      Boolean(typography.bodyFont) ||
+      Boolean(typography.display?.name) ||
+      Boolean(typography.body?.name) ||
+      fontCount > 0;
+
+    const meaningfulPreflight = preflight.find(item => {
+      const text = `${item.issue || ''} ${item.suggestedFix || ''}`.toLowerCase();
+      return text && !text.includes('assets prepared locally');
+    });
+
+    const cards = [];
+
+    if (primaryLogo) {
+      cards.push({
+        n: '01',
+        title: `Confirm ${brandName}'s lead identity.`,
+        copy: `I found ${primaryLogo} as the strongest candidate for the primary logo. Confirming this gives the Brand Home a clear foundation.`
+      });
+    } else if (iconMark) {
+      cards.push({
+        n: '01',
+        title: 'Confirm the identity mark.',
+        copy: `I found ${iconMark} as a strong mark or icon candidate. The next step is confirming whether it should lead the system.`
+      });
+    } else if (logoCount || iconCount) {
+      cards.push({
+        n: '01',
+        title: 'Choose the lead identity asset.',
+        copy: `I found ${logoCount + iconCount} identity asset${logoCount + iconCount === 1 ? '' : 's'}. Before publishing, one should be confirmed as the primary logo or mark.`
+      });
+    } else {
+      cards.push({
+        n: '01',
+        title: 'Add or confirm the main logo.',
+        copy: `I can organize these files, but the Brand Home will be stronger once the primary identity asset is confirmed.`
+      });
+    }
+
+    if (palette.length && hasTypography) {
+      const primary = palette[0];
+      const displayName = typography.displayFont || typography.display?.name || 'the display type';
+      cards.push({
+        n: '02',
+        title: 'Confirm the visual system.',
+        copy: `I found ${palette.length} brand colors led by ${primary.name || primary.hex}, along with ${displayName}. Confirming color and type will make the system feel intentional.`
+      });
+    } else if (palette.length) {
+      const primary = palette[0];
+      cards.push({
+        n: '02',
+        title: 'Confirm the color direction.',
+        copy: `I found ${palette.length} brand color${palette.length === 1 ? '' : 's'}, led by ${primary.name || primary.hex}. I recommend confirming the primary and supporting colors next.`
+      });
+    } else if (hasTypography) {
+      const displayName = typography.displayFont || typography.display?.name || 'the display type';
+      cards.push({
+        n: '02',
+        title: 'Confirm the typography direction.',
+        copy: `Typography appears to be included or visually detectable. I recommend confirming ${displayName} before publishing the Brand Home.`
+      });
+    } else {
+      cards.push({
+        n: '02',
+        title: 'Prepare a starter visual system.',
+        copy: `I did not find a complete color or type system yet, so I can build a starter direction from the strongest uploaded assets.`
+      });
+    }
+
+    if (meaningfulPreflight) {
+      cards.push({
+        n: '03',
+        title: meaningfulPreflight.issue || 'Review one issue before publishing.',
+        copy: meaningfulPreflight.suggestedFix || 'I found one item worth reviewing before the Brand Home is prepared.'
+      });
+    } else if (referenceFiles.length && visualAssets.length) {
+      cards.push({
+        n: '03',
+        title: 'Separate references from visual assets.',
+        copy: `I found both usable visual assets and reference materials. I recommend keeping logos, marks, and visuals separate from guidelines, documents, and support files.`
+      });
+    } else if (guidelineCount || docCount) {
+      cards.push({
+        n: '03',
+        title: 'Use reference files as source material.',
+        copy: `I found ${guidelineCount + docCount} reference file${guidelineCount + docCount === 1 ? '' : 's'}. These should guide the Brand Home without being treated as final visual assets.`
+      });
+    } else if (assignments.length) {
+      cards.push({
+        n: '03',
+        title: 'Organize the asset library.',
+        copy: `${fileCount} asset${fileCount === 1 ? '' : 's'} can now be arranged into a clean Brand Home without exposing every file at once.`
+      });
+    } else {
+      cards.push({
+        n: '03',
+        title: 'Prepare the first Brand Home.',
+        copy: `The foundation is ready enough to move forward. I’ll keep the review focused on what matters first.`
+      });
+    }
+
+    grid.innerHTML = cards.slice(0, 3).map(item => `
+      <article class="review-reco-card">
+        <span>${esc(item.n)}</span>
+        <h3>${esc(item.title)}</h3>
+        <p>${esc(item.copy)}</p>
+      </article>
+    `).join('');
+  }
+
+
   function guessClientNameFromFiles(files) {
     const first = Array.from(files || [])[0]?.name || 'Brand';
     const base = first
@@ -4918,46 +5101,6 @@ btnMovein.addEventListener('click', event => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
-
-  function renderCustomerReview(report = preparationReport) {
-    const grid = document.getElementById('reviewRecoGrid');
-    if (!grid) return;
-
-    const palette = aiData?.palette || aiData?.colors || [];
-    const fileCount = report?.preparedFileCount || orgAssets.length || 0;
-    const logoCount = report?.categoryCounts?.['Logos'] || 0;
-    const iconCount = report?.categoryCounts?.['Icons'] || 0;
-
-    const recommendations = [
-      {
-        n: '01',
-        title: 'Primary identity',
-        copy: logoCount || iconCount
-          ? `Confirm the primary logo and mark before I prepare the rest of the system.`
-          : `Add or confirm the main identity asset so the Brand Home starts from the right foundation.`
-      },
-      {
-        n: '02',
-        title: 'Color system',
-        copy: palette.length
-          ? `I found ${palette.length} colors. I recommend confirming the primary and supporting colors next.`
-          : `I can prepare a starter color system from the assets you moved in.`
-      },
-      {
-        n: '03',
-        title: 'Asset preparation',
-        copy: `${fileCount} asset${fileCount === 1 ? '' : 's'} can now be arranged into your Brand Home without showing every file at once.`
-      }
-    ];
-
-    grid.innerHTML = recommendations.map(item => `
-      <article class="review-reco-card">
-        <span>${esc(item.n)}</span>
-        <h3>${esc(item.title)}</h3>
-        <p>${esc(item.copy)}</p>
-      </article>
-    `).join('');
-  }
 
   document.getElementById('prepareHomeBtn')?.addEventListener('click', event => {
     event.preventDefault();
