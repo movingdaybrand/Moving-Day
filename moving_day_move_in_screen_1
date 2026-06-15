@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Moving Day</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,200;14..32,300;14..32,400;14..32,500&display=swap" rel="stylesheet" />
@@ -392,13 +393,38 @@ body.dragging .glass {
     0 0 40px rgba(60,160,100,0.09);
 }
 
-.drop-zone {
-  position: absolute; inset: 0; z-index: 4;
-  border-radius: 24px; cursor: default;
-}
+/* UPLOAD FIX: the file input is truly hidden; it no longer overlays the glass panel. */
 .drop-input {
-  position: absolute; inset: 0; opacity: 0;
-  cursor: pointer; font-size: 0;
+  position: fixed;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* FILE INPUT TRIGGER: only this intended area opens the picker on click/keyboard. */
+.upload-select-area {
+  width: 100%;
+  max-width: 390px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-radius: 24px;
+  padding: 0.4rem 0.35rem 0.2rem;
+  cursor: pointer;
+  outline: none;
+  transition: transform .35s cubic-bezier(0.22,1,0.36,1), filter .35s ease;
+}
+.upload-select-area:hover,
+.upload-select-area:focus-visible {
+  transform: translateY(-1px);
+  filter: brightness(1.015);
+}
+.upload-select-area:focus-visible {
+  box-shadow: 0 0 0 3px rgba(44, 120, 76, .13);
 }
 
 .glass-inner {
@@ -555,6 +581,254 @@ body.dragging .file-tags   { opacity: 0.22; }
   .s-dot, .p-ring { animation: none; }
   .upload { transition: none; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   REVIEW RESULTS — existing analyzer output, restyled quietly
+═══════════════════════════════════════════════════════ */
+body.show-results {
+  overflow: auto;
+  min-height: 100%;
+  background: #f3f7f3;
+}
+body.show-results .stage,
+body.show-results .upload { display: none; }
+
+.results-app {
+  display: none;
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  min-height: 100vh;
+  padding: 28px 28px 96px;
+  color: rgba(8,28,16,0.88);
+}
+.results-app.visible { display: block; }
+.results-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+.results-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.48);
+  border: 0.5px solid rgba(255,255,255,0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.88),
+    0 20px 70px rgba(20,60,36,0.075);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+}
+.results-kicker {
+  font-size: 9px;
+  font-weight: 550;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(18,46,28,0.48);
+  margin-bottom: 5px;
+}
+.results-title {
+  font-size: 1.3rem;
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  color: rgba(8,28,16,0.86);
+}
+.results-note {
+  margin-top: 5px;
+  font-size: 0.78rem;
+  font-weight: 300;
+  color: rgba(14,42,24,0.52);
+}
+.results-back {
+  border: 0;
+  border-radius: 100px;
+  padding: 0.78rem 1.15rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(8,28,16,0.78);
+  background: rgba(255,255,255,0.72);
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,0.98),
+    0 0 0 1px rgba(44,90,60,0.14),
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 10px 28px rgba(20,60,36,0.08);
+}
+.progress-strip {
+  display: none;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.44);
+  border: 0.5px solid rgba(255,255,255,0.76);
+  box-shadow: 0 14px 44px rgba(20,60,36,0.055);
+  margin-bottom: 18px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.progress-strip.visible { display: block; }
+.progress-steps { display: flex; }
+.progress-step {
+  flex: 1;
+  padding: 14px 14px;
+  font-size: 9px;
+  font-weight: 520;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(14,42,24,.28);
+  border-right: 0.5px solid rgba(44,90,60,.08);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color .35s ease;
+}
+.progress-step:last-child { border-right: 0; }
+.progress-step.done { color: rgba(25,82,48,.66); }
+.progress-step.active { color: rgba(8,28,16,.86); }
+.step-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; opacity: .5; }
+.progress-step.active .step-dot { opacity: 1; animation: pulse 1.2s infinite; }
+.progress-step.done .step-dot { opacity: 1; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.28} }
+.summary-bar {
+  display: none;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.52);
+  border: 0.5px solid rgba(255,255,255,0.78);
+  box-shadow: 0 16px 48px rgba(20,60,36,0.06);
+  margin-bottom: 24px;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.summary-bar.visible { display: flex; }
+.summary-stat { display: flex; flex-direction: column; gap: 2px; }
+.summary-stat-n { font-size: 26px; line-height: 1; font-weight: 300; color: rgba(8,28,16,0.86); letter-spacing: -.045em; }
+.summary-stat-l { font-size: 9px; font-weight: 540; letter-spacing: .13em; text-transform: uppercase; color: rgba(14,42,24,.42); }
+.summary-divider { width: 1px; height: 34px; background: rgba(44,90,60,.10); }
+.summary-actions { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+.sum-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-size: 10px;
+  font-weight: 560;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  color: rgba(8,28,16,.88);
+  background: rgba(255,255,255,0.78);
+  box-shadow: 0 0 0 1px rgba(44,90,60,0.14), inset 0 1px 0 rgba(255,255,255,1), 0 10px 24px rgba(20,60,36,0.06);
+}
+.sum-btn.apply { background: rgba(214,232,222,.78); }
+.sum-btn.zip { background: rgba(20,48,32,.88); color: rgba(255,255,255,.92); }
+.sum-btn:disabled { opacity: .38; cursor: not-allowed; }
+.section-head { display: flex; align-items: baseline; gap: 12px; margin: 32px 0 14px; }
+.section-head h3 { font-size: 1.14rem; font-weight: 300; letter-spacing: -.035em; color: rgba(8,28,16,.88); margin: 0; }
+.section-head span { font-size: 9px; font-weight: 560; letter-spacing: .14em; text-transform: uppercase; color: rgba(14,42,24,.38); }
+.brand-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.brand-grid .span2 { grid-column: span 2; }
+.bcard,
+.asset-card,
+.variant-card {
+  background: rgba(255,255,255,0.58);
+  color: rgba(8,28,16,.86);
+  border-radius: 22px;
+  overflow: hidden;
+  border: 0.5px solid rgba(255,255,255,0.78);
+  box-shadow: 0 18px 52px rgba(20,60,36,0.055);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.bcard-head { padding: 16px 18px 12px; border-bottom: 1px solid rgba(44,90,60,.07); display: flex; align-items: flex-start; justify-content: space-between; }
+.eyebrow { font-size: 9px; font-weight: 650; letter-spacing: .16em; text-transform: uppercase; color: rgba(22,74,42,.62); margin: 0 0 3px; }
+.bcard-title { font-size: 1rem; font-weight: 300; letter-spacing: -.03em; margin: 0; }
+.bcard-body { padding: 16px 18px; }
+.brand-name-big { font-size: 1.8rem; font-weight: 300; letter-spacing: -.055em; margin: 0 0 10px; line-height: 1; color: rgba(8,28,16,.88); }
+.tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 9px; font-weight: 560; letter-spacing: .08em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(44,90,60,.12); color: rgba(14,42,24,.55); background: rgba(255,255,255,.54); }
+.tag.dark { background: rgba(20,48,32,.88); color: rgba(255,255,255,.9); border-color: transparent; }
+.palette-bar { display: flex; height: 64px; border-radius: 14px; overflow: hidden; margin-bottom: 12px; border: 0.5px solid rgba(44,90,60,.10); }
+.pb-swatch { flex: 1; }
+.mini-swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+.mini-swatch { flex: 1; min-width: 60px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(44,90,60,.09); background: rgba(255,255,255,.44); }
+.mini-swatch-color { height: 36px; }
+.mini-swatch-info { padding: 6px 8px; }
+.mini-swatch-name { font-size: 10px; font-weight: 560; color: rgba(8,28,16,.82); display: block; }
+.mini-swatch-hex { font-size: 10px; color: rgba(14,42,24,.46); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.type-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.type-block { background: rgba(255,255,255,.48); border-radius: 14px; padding: 12px 14px; border: 1px solid rgba(44,90,60,.08); }
+.type-label { font-size: 9px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: rgba(22,74,42,.62); margin: 0 0 6px; }
+.type-display-sample { font-size: 20px; font-weight: 450; letter-spacing: -.04em; color: rgba(8,28,16,.86); margin: 0 0 4px; line-height: 1; }
+.type-meta { font-size: 11px; color: rgba(14,42,24,.52); margin: 0; }
+.preflight-rows { display: grid; gap: 7px; }
+.pf-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.48); border: 1px solid rgba(44,90,60,.08); }
+.pf-badge { font-size: 8px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; flex-shrink: 0; margin-top: 1px; }
+.pf-badge.warning { background: #fff5d7; color: #8a6400; }
+.pf-badge.suggestion { background: #dcf0f2; color: #0d6066; }
+.pf-badge.note { background: rgba(220,228,222,.7); color: rgba(8,28,16,.62); }
+.pf-issue { font-size: 12px; font-weight: 550; color: rgba(8,28,16,.86); margin: 0 0 2px; }
+.pf-fix { font-size: 11px; color: rgba(14,42,24,.52); margin: 0; line-height: 1.4; }
+.asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.asset-card { display: flex; flex-direction: column; }
+.asset-card.ignored { opacity: .4; }
+.asset-preview, .variant-preview {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(45deg, rgba(190,210,198,.30) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(190,210,198,.30) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(190,210,198,.30) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(190,210,198,.30) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0,0 8px,8px -8px,-8px 0;
+  background-color: rgba(255,255,255,.36);
+}
+.asset-preview img, .variant-preview img { max-width: 80%; max-height: 80%; object-fit: contain; }
+.file-fallback { font-size: 11px; font-weight: 650; letter-spacing: .14em; text-transform: uppercase; color: rgba(14,42,24,.42); padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,.58); border: 1px solid rgba(44,90,60,.10); }
+.asset-info { padding: 12px 14px; flex: 1; border-top: 1px solid rgba(44,90,60,.07); }
+.asset-role { font-size: 9px; font-weight: 650; letter-spacing: .13em; text-transform: uppercase; color: rgba(22,74,42,.62); margin: 0 0 3px; }
+.asset-filename { font-size: 12px; font-weight: 550; color: rgba(8,28,16,.86); margin: 0 0 2px; word-break: break-all; }
+.asset-folder { font-size: 11px; color: rgba(14,42,24,.52); margin: 0 0 6px; }
+.asset-rename { width: 100%; border: 1px solid rgba(44,90,60,.12); border-radius: 10px; padding: 7px 8px; font-size: 11px; color: rgba(8,28,16,.86); background: rgba(255,255,255,.50); font-family: inherit; margin-top: 4px; }
+.asset-actions { padding: 10px 14px; border-top: 1px solid rgba(44,90,60,.07); display: flex; gap: 6px; flex-wrap: wrap; }
+.act-btn { font-size: 9px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; cursor: pointer; border: 1px solid rgba(44,90,60,.14); background: rgba(255,255,255,.52); color: rgba(22,74,42,.72); }
+.act-btn.primary { background: rgba(20,48,32,.88); color: rgba(255,255,255,.9); border-color: transparent; }
+.variant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.variant-preview { height: 90px; }
+.variant-preview.dark-bg { background: #132019; }
+.variant-info { padding: 10px 12px; border-top: 1px solid rgba(44,90,60,.07); }
+.variant-color-row { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+.variant-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(44,90,60,.12); }
+.variant-label { font-size: 11px; font-weight: 560; color: rgba(8,28,16,.86); }
+.variant-file { font-size: 10px; color: rgba(14,42,24,.50); margin: 0 0 8px; word-break: break-all; }
+.variant-dl { width: 100%; border: 0; border-radius: 999px; padding: 7px; background: rgba(20,48,32,.88); color: rgba(255,255,255,.9); font-size: 9px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.json-toggle { background: rgba(255,255,255,.50); border: 1px solid rgba(44,90,60,.12); color: rgba(14,42,24,.52); font-size: 10px; font-weight: 560; letter-spacing: .08em; text-transform: uppercase; padding: 8px 14px; border-radius: 999px; cursor: pointer; margin-top: 32px; }
+pre { white-space: pre-wrap; word-break: break-word; background: rgba(20,48,32,.92); color: rgba(255,255,255,.88); border-radius: 18px; padding: 18px; font-size: 11px; overflow: auto; margin-top: 12px; display: none; }
+pre.open { display: block; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: rgba(20,48,32,.92); color: rgba(255,255,255,.92); padding: 12px 22px; border-radius: 999px; font-size: 12px; font-weight: 500; z-index: 9999; box-shadow: 0 8px 32px rgba(0,0,0,.16); transition: transform .3s cubic-bezier(.22,.61,.36,1), opacity .3s; opacity: 0; pointer-events: none; white-space: nowrap; }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+@media (max-width: 800px) {
+  .brand-grid { grid-template-columns: 1fr; }
+  .brand-grid .span2 { grid-column: span 1; }
+  .results-app { padding: 18px 14px 72px; }
+  .results-top { align-items: flex-start; flex-direction: column; }
+  .summary-actions { margin-left: 0; }
+  .progress-steps { flex-direction: column; }
+  .progress-step { border-right: 0; border-bottom: 1px solid rgba(44,90,60,.07); }
+}
+
 </style>
 </head>
 <body>
@@ -612,39 +886,40 @@ body.dragging .file-tags   { opacity: 0.22; }
       <p class="p-sub" id="p-sub">Reviewing your assets</p>
     </div>
 
-    <!-- Full-panel drop zone — no border, no visible box -->
-    <div class="drop-zone" id="drop-zone" aria-label="Drop brand assets anywhere">
-      <input class="drop-input" type="file" id="file-input" multiple
-        accept=".pdf,.png,.jpg,.jpeg,.svg,.gif,.webp,.ai,.eps,.zip,.ttf,.otf,.woff,.woff2,.pptx,.docx,.xlsx,.mp4,.mov,.sketch,.fig"
-        tabindex="-1" aria-label="Choose brand files" />
-    </div>
+    <!-- UPLOAD FIX: one hidden file input only. It is triggered by JS, never by an overlay. -->
+    <input class="drop-input" type="file" id="file-input" multiple
+      accept=".pdf,.png,.jpg,.jpeg,.svg,.gif,.webp,.ai,.eps,.zip,.ttf,.otf,.woff,.woff2,.pptx,.docx,.xlsx,.mp4,.mov,.sketch,.fig"
+      tabindex="-1" aria-label="Choose brand files" />
 
     <div class="glass-inner">
-      <div class="up-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <polyline points="16 16 12 12 8 16"/>
-          <line x1="12" y1="12" x2="12" y2="21"/>
-          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-        </svg>
-      </div>
+      <!-- FILE INPUT TRIGGER: this is the only upload surface that opens the picker. -->
+      <div class="upload-select-area" id="upload-zone" role="button" tabindex="0" aria-label="Choose or drop brand files">
+        <div class="up-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <polyline points="16 16 12 12 8 16"/>
+            <line x1="12" y1="12" x2="12" y2="21"/>
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+          </svg>
+        </div>
 
-      <div class="normal-copy">
-        <p class="up-head">Move your brand in.</p>
-        <p class="up-sub">Drop your logos, guidelines, fonts, photography,<br>presentations, websites, PDFs, and every brand asset here.</p>
-      </div>
-      <div class="drag-copy">
-        <p class="up-head">Drop your brand anywhere.</p>
-        <p class="up-sub">The door is open.</p>
-      </div>
+        <div class="normal-copy">
+          <p class="up-head">Move your brand in.</p>
+          <p class="up-sub">Drop your logos, guidelines, fonts, photography,<br>presentations, websites, PDFs, and every brand asset here.</p>
+        </div>
+        <div class="drag-copy">
+          <p class="up-head">Drop your brand anywhere.</p>
+          <p class="up-sub">The door is open.</p>
+        </div>
 
-      <div class="file-tags">
-        <span class="f-tag">Logos</span>
-        <span class="f-tag">Fonts</span>
-        <span class="f-tag">Guidelines</span>
-        <span class="f-tag">Photography</span>
-        <span class="f-tag">PDFs</span>
-        <span class="f-tag">Presentations</span>
-        <span class="f-tag">Websites</span>
+        <div class="file-tags" aria-hidden="true">
+          <span class="f-tag">Logos</span>
+          <span class="f-tag">Fonts</span>
+          <span class="f-tag">Guidelines</span>
+          <span class="f-tag">Photography</span>
+          <span class="f-tag">PDFs</span>
+          <span class="f-tag">Presentations</span>
+          <span class="f-tag">Websites</span>
+        </div>
       </div>
 
       <button class="btn-movein" id="btn-movein" disabled aria-label="Move In">
@@ -666,6 +941,64 @@ body.dragging .file-tags   { opacity: 0.22; }
     </div>
   </div>
 </div>
+
+
+<!-- ══ REVIEW RESULTS / EXISTING ANALYZER OUTPUT ══════ -->
+<div class="toast" id="toast"></div>
+<main class="results-app" id="resultsApp" aria-label="Moving Day brand review results">
+  <div class="results-shell">
+    <header class="results-top">
+      <div>
+        <p class="results-kicker">Moving Day</p>
+        <h2 class="results-title">Your brand is prepared.</h2>
+        <p class="results-note">Review the organized system, then apply it to the builder or download the package.</p>
+      </div>
+      <button class="results-back" id="backToMoveIn" type="button">Move in another brand</button>
+    </header>
+
+    <div class="progress-strip" id="progressStrip">
+      <div class="progress-steps">
+        <div class="progress-step" id="ps1"><span class="step-dot"></span>Reading files</div>
+        <div class="progress-step" id="ps2"><span class="step-dot"></span>Reviewing assets</div>
+        <div class="progress-step" id="ps3"><span class="step-dot"></span>Organizing files</div>
+        <div class="progress-step" id="ps4"><span class="step-dot"></span>Color variants</div>
+        <div class="progress-step" id="ps5"><span class="step-dot"></span>Package ready</div>
+      </div>
+    </div>
+
+    <div class="summary-bar" id="summaryBar">
+      <div class="summary-stat"><span class="summary-stat-n" id="statFiles">0</span><span class="summary-stat-l">Files reviewed</span></div>
+      <div class="summary-divider"></div>
+      <div class="summary-stat"><span class="summary-stat-n" id="statVariants">0</span><span class="summary-stat-l">Variants created</span></div>
+      <div class="summary-divider"></div>
+      <div class="summary-stat"><span class="summary-stat-n" id="statColors">0</span><span class="summary-stat-l">Colors detected</span></div>
+      <div class="summary-actions">
+        <button class="sum-btn apply" id="applyBtn" disabled>Apply to Builder</button>
+        <button class="sum-btn zip" id="zipBtn" disabled>Download ZIP</button>
+      </div>
+    </div>
+
+    <div id="brandSection" style="display:none">
+      <div class="section-head"><h3>Detected Brand System</h3><span id="brandLabel"></span></div>
+      <div class="brand-grid" id="brandGrid"></div>
+    </div>
+
+    <div id="assetsSection" style="display:none">
+      <div class="section-head"><h3>Organized Assets</h3><span id="assetsLabel"></span></div>
+      <div class="asset-grid" id="assetGrid"></div>
+    </div>
+
+    <div id="variantsSection" style="display:none">
+      <div class="section-head"><h3>Generated Variants</h3><span id="variantsLabel"></span></div>
+      <div class="variant-grid" id="variantGrid"></div>
+    </div>
+
+    <div id="jsonSection" style="display:none">
+      <button class="json-toggle" id="jsonToggle">Show review data</button>
+      <pre id="jsonPre"></pre>
+    </div>
+  </div>
+</main>
 
 <script>
 /* ── Headline word animation ── */
@@ -691,97 +1024,783 @@ body.dragging .file-tags   { opacity: 0.22; }
   el.appendChild(l2);
 })();
 
-/* ── Move In → Upload state ── */
-const intro    = document.getElementById('intro');
-const upload   = document.getElementById('upload');
-const btnBegin = document.getElementById('btn-begin');
+/* APP STATE ROUTER
+   Internal states keep Moving Day feeling like one continuous product environment. */
+const APP_STATES = ['welcome', 'movein', 'upload', 'preparing', 'review', 'brandhome'];
+let appState = 'welcome';
+let staged = [];
+let dragDepth = 0;
 
-btnBegin.addEventListener('click', () => {
-  intro.style.transition    = 'opacity 0.45s ease';
-  intro.style.opacity       = '0';
-  intro.style.pointerEvents = 'none';
-  setTimeout(() => {
-    intro.setAttribute('aria-hidden', 'true');
-    upload.setAttribute('aria-hidden', 'false');
-    upload.classList.add('on');
-  }, 420);
+const intro       = document.getElementById('intro');
+const upload      = document.getElementById('upload');
+const glass       = document.getElementById('glass');
+const btnBegin    = document.getElementById('btn-begin');
+const btnMovein   = document.getElementById('btn-movein');
+const status      = document.getElementById('status');
+const sTxt        = document.getElementById('s-txt');
+const tray        = document.getElementById('tray');
+const fileInput   = document.getElementById('file-input');
+const uploadZone  = document.getElementById('upload-zone');
+const preparing   = document.getElementById('preparing');
+const pSub        = document.getElementById('p-sub');
+const fmt         = b => b < 1048576 ? Math.round(b / 1024) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
+window.pSub = pSub;
+
+function renderState(state) {
+  appState = state;
+  document.body.classList.remove('dragging');
+  dragDepth = 0;
+
+  const onIntro = state === 'welcome' || state === 'movein';
+  const onUpload = state === 'upload' || state === 'preparing';
+  const onPreparing = state === 'preparing';
+  const onResults = state === 'review' || state === 'brandhome';
+
+  document.body.classList.toggle('show-results', onResults);
+  intro.style.transition = 'opacity 0.45s ease';
+  intro.style.opacity = onIntro ? '1' : '0';
+  intro.style.pointerEvents = onIntro ? 'auto' : 'none';
+  intro.setAttribute('aria-hidden', onIntro ? 'false' : 'true');
+
+  upload.classList.toggle('on', onUpload);
+  upload.setAttribute('aria-hidden', onUpload ? 'false' : 'true');
+  preparing.classList.toggle('on', onPreparing);
+
+  const results = document.getElementById('resultsApp');
+  if (results) results.classList.toggle('visible', onResults);
+}
+
+function goToState(state, options = {}) {
+  if (!APP_STATES.includes(state)) return;
+  const { replace = false, push = true } = options;
+  renderState(state);
+
+  if (push) {
+    const method = replace ? 'replaceState' : 'pushState';
+    history[method]({ mdState: state }, '', window.location.href);
+  }
+}
+
+history.replaceState({ mdState: appState }, '', window.location.href);
+renderState(appState);
+
+/* BACK BUTTON HANDLER */
+window.addEventListener('popstate', event => {
+  const state = event.state?.mdState;
+  if (state && APP_STATES.includes(state)) {
+    renderState(state);
+  }
 });
 
-/* ── UPLOAD HOOK ── */
-let staged      = [];
-const fmt       = b => b < 1048576 ? Math.round(b/1024)+' KB' : (b/1048576).toFixed(1)+' MB';
-const btnMovein = document.getElementById('btn-movein');
-const status    = document.getElementById('status');
-const sTxt      = document.getElementById('s-txt');
-const tray      = document.getElementById('tray');
-const fileInput = document.getElementById('file-input');
+/* ── Move In → Upload state ── */
+btnBegin.addEventListener('click', event => {
+  event.preventDefault();
+  event.stopPropagation();
+  goToState('upload');
+});
 
+/* UPLOAD FIX */
 function renderTray() {
   if (!staged.length) {
-    tray.classList.remove('on'); tray.innerHTML = '';
-    btnMovein.disabled = true; status.classList.remove('on'); return;
+    tray.classList.remove('on');
+    tray.innerHTML = '';
+    btnMovein.disabled = true;
+    status.classList.remove('on');
+    return;
   }
+
   tray.classList.add('on');
   tray.innerHTML = staged.map(f => `
     <div class="ti" role="listitem">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <span class="tn">${f.name}</span><span class="ts">${fmt(f.size)}</span>
+      <span class="tn">${esc(f.name)}</span><span class="ts">${fmt(f.size)}</span>
     </div>`).join('');
+
   btnMovein.disabled = false;
   status.classList.add('on');
-  sTxt.textContent = staged.length === 1 ? '1 asset ready' : `${staged.length} assets ready`;
+  sTxt.textContent = staged.length === 1 ? '1 asset received' : `${staged.length} assets received`;
 }
 
-function addFiles(list) {
-  Array.from(list).forEach(f => {
-    if (!staged.find(s => s.name===f.name && s.size===f.size)) staged.push(f);
+function addFiles(fileList) {
+  const incoming = Array.from(fileList || []).filter(Boolean);
+  if (!incoming.length) return;
+
+  incoming.forEach(file => {
+    const exists = staged.some(s => s.name === file.name && s.size === file.size && s.lastModified === file.lastModified);
+    if (!exists) staged.push(file);
   });
+
   renderTray();
+
+  if (appState !== 'upload') {
+    goToState('upload');
+  }
 }
 
-/* DRAG OVER STATE */
-let dc = 0;
-document.addEventListener('dragenter', e => { e.preventDefault(); dc++; document.body.classList.add('dragging'); });
-document.addEventListener('dragleave', () => { dc--; if (dc<=0) { dc=0; document.body.classList.remove('dragging'); } });
-document.addEventListener('dragover',  e => e.preventDefault());
-document.addEventListener('drop', e => {
-  e.preventDefault(); dc=0; document.body.classList.remove('dragging');
-  if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+/* FILE INPUT TRIGGER */
+function openFilePicker(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  if (appState !== 'upload') return;
+  fileInput.click();
+}
+
+uploadZone.addEventListener('click', openFilePicker);
+uploadZone.addEventListener('keydown', event => {
+  if (event.key === 'Enter' || event.key === ' ') openFilePicker(event);
 });
 
-fileInput.addEventListener('change', () => { if (fileInput.files.length) addFiles(fileInput.files); fileInput.value=''; });
-document.getElementById('drop-zone').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('click', event => event.stopPropagation());
+fileInput.addEventListener('change', event => {
+  event.stopPropagation();
+  if (fileInput.files?.length) addFiles(fileInput.files);
+  fileInput.value = '';
+});
 
-/* ── PREPARING HOOK ── */
-const preparing = document.getElementById('preparing');
-const pSub      = document.getElementById('p-sub');
-const lines = [
-  'Reviewing your assets',
-  'Organising your files',
-  'Understanding your visual language',
-  'Preparing your colour system',
-  'Cataloguing your typography',
-  'Arranging your brand home',
-  'Almost ready to welcome you',
-];
+/* DRAG DROP HANDLERS */
+function hasDraggedFiles(event) {
+  return Array.from(event.dataTransfer?.types || []).includes('Files');
+}
 
-btnMovein.addEventListener('click', () => {
-  if (!staged.length) return;
-  preparing.classList.add('on');
-  let i = 0;
-  const cycle = setInterval(() => {
-    i++;
-    if (i >= lines.length) { clearInterval(cycle); nextStep(staged); return; }
+document.addEventListener('dragenter', event => {
+  if (!hasDraggedFiles(event)) return;
+  event.preventDefault();
+  dragDepth += 1;
+  if (appState === 'upload') document.body.classList.add('dragging');
+});
+
+document.addEventListener('dragover', event => {
+  if (!hasDraggedFiles(event)) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = appState === 'upload' ? 'copy' : 'none';
+});
+
+document.addEventListener('dragleave', event => {
+  if (!hasDraggedFiles(event)) return;
+  event.preventDefault();
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) document.body.classList.remove('dragging');
+});
+
+document.addEventListener('drop', event => {
+  if (!hasDraggedFiles(event)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  dragDepth = 0;
+  document.body.classList.remove('dragging');
+  if (appState === 'upload' && event.dataTransfer?.files?.length) {
+    addFiles(event.dataTransfer.files);
+  }
+});
+
+// Prevent the browser from opening files if they are dropped outside the intended app area.
+window.addEventListener('dragover', event => event.preventDefault());
+window.addEventListener('drop', event => event.preventDefault());
+
+/* PREPARING STATE HOOK */
+btnMovein.addEventListener('click', event => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (!staged.length || appState !== 'upload') return;
+  goToState('preparing');
+  runBrandPipeline(staged);
+});
+
+
+
+  const BUILDER_KEY = 'movingDayStudio_v3';
+  let aiData = null;
+  let orgAssets = [];
+  let variants = [];
+
+  const $ = id => document.getElementById(id);
+  function esc(v) { return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
+  function cleanName(s) { return String(s||'Brand').replace(/\.[^/.]+$/,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'Brand'; }
+  function ext(n) { return (n||'').includes('.') ? n.split('.').pop().toLowerCase() : 'png'; }
+  function normalizeHex(v) { v=String(v||'').trim(); if(!v.startsWith('#'))v='#'+v; return /^#[0-9A-Fa-f]{6}$/.test(v)?v.toUpperCase():'#15140F'; }
+
+  function labelForRole(r) {
+    return {PrimaryLogo:'Primary Logo',SecondaryLogo:'Secondary Logo',IconMark:'Icon Mark',
+      WebsiteHeader:'Website Header',SocialAvatar:'Social Avatar',BusinessCard:'Business Card',
+      PrintAsset:'Print Asset',ExtraAsset:'Extra Asset'}[r]||r;
+  }
+  function folderForRole(r) {
+    return {PrimaryLogo:'01_Logos/Primary',SecondaryLogo:'01_Logos/Secondary',IconMark:'01_Logos/Icon',
+      WebsiteHeader:'04_Social_Assets',SocialAvatar:'04_Social_Assets',BusinessCard:'04_Social_Assets',
+      PrintAsset:'04_Social_Assets',ExtraAsset:'06_Extra_Assets'}[r]||'06_Extra_Assets';
+  }
+  function guessRole(name) {
+    const n=name.toLowerCase();
+    if(n.includes('favicon'))return 'IconMark';
+    if(n.includes('icon')||n.includes('mark')||n.includes('symbol'))return 'IconMark';
+    if(n.includes('secondary')||n.includes('alt'))return 'SecondaryLogo';
+    if(n.includes('header')||n.includes('hero'))return 'WebsiteHeader';
+    if(n.includes('social')||n.includes('avatar')||n.includes('profile'))return 'SocialAvatar';
+    if(n.includes('card'))return 'BusinessCard';
+    return 'PrimaryLogo';
+  }
+  function resolveRole(slot) {
+    const s=(slot||'').toLowerCase();
+    if(s.includes('primary')||s.includes('hero')||s.includes('lead')||s.includes('logo'))return 'PrimaryLogo';
+    if(s.includes('secondary')||s.includes('alternate'))return 'SecondaryLogo';
+    if(s.includes('icon')||s.includes('mark')||s.includes('favicon'))return 'IconMark';
+    if(s.includes('social')||s.includes('avatar')||s.includes('profile'))return 'SocialAvatar';
+    if(s.includes('header')||s.includes('website'))return 'WebsiteHeader';
+    if(s.includes('card'))return 'BusinessCard';
+    if(s.includes('print'))return 'PrintAsset';
+    return 'PrimaryLogo';
+  }
+  function makeFinalName(brandName, role, colorName, extension) {
+    return `${cleanName(brandName)}_${role}_${cleanName(colorName)}.${extension}`;
+  }
+  function fileToDataUrl(file) {
+    return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
+  }
+  function downloadBlob(blob, name) {
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  }
+  function showToast(msg) {
+    const t=$('toast');t.textContent=msg;t.classList.add('show');
+    clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),3000);
+  }
+  function stepDone(n){$(`ps${n}`).classList.remove('active');$(`ps${n}`).classList.add('done');}
+  function stepActive(n){$(`ps${n}`).classList.add('active');}
+
+  async function recolorPng(asset, hex, colorName) {
+    const img=new Image();img.crossOrigin='anonymous';img.src=asset.url;
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;});
+    const c=document.createElement('canvas');
+    c.width=img.naturalWidth||800;c.height=img.naturalHeight||800;
+    const ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+    const id=ctx.getImageData(0,0,c.width,c.height);const d=id.data;
+    const rr=parseInt(hex.slice(1,3),16),gg=parseInt(hex.slice(3,5),16),bb=parseInt(hex.slice(5,7),16);
+    for(let i=0;i<d.length;i+=4){if(d[i+3]>12){d[i]=rr;d[i+1]=gg;d[i+2]=bb;}}
+    ctx.putImageData(id,0,0);
+    const blob=await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(),'image/png'));
+    const brandName=aiData?.guide?.clientName||aiData?.brand?.name||'Brand';
+    return {
+      id:crypto.randomUUID(),file:blob,url:URL.createObjectURL(blob),
+      colorName,hex,extension:'png',
+      finalName:makeFinalName(brandName,asset.role,colorName,'png'),
+      role:asset.role,label:labelForRole(asset.role),
+      sourceLabel:asset.label,originalName:asset.originalName
+    };
+  }
+
+
+  // ── MAIN PIPELINE — called by the Move In screen ──
+  // Modes for testing:
+  //   default / ?mode=auto  → try the Brand Concierge route first, fall back to local organization
+  //   ?mode=ai             → require /api/analyze-brand-files
+  //   ?mode=local          → skip the API and organize locally
+  const ANALYSIS_MODE = (new URLSearchParams(window.location.search).get('mode') || 'auto').toLowerCase();
+
+  function isAnalyzableFile(file) {
+    const e = ext(file.name);
+    return (file.type || '').startsWith('image/') || ['svg','png','jpg','jpeg','webp'].includes(e);
+  }
+
+  function isPreviewableImage(asset) {
+    const e = asset.extension;
+    return (asset.file?.type || '').startsWith('image/') || ['svg','png','jpg','jpeg','webp','gif'].includes(e);
+  }
+
+  function setPreparingLine(text) {
+    if (!window.pSub) return;
     pSub.style.opacity = '0';
-    setTimeout(() => { pSub.textContent = lines[i]; pSub.style.opacity = ''; }, 350);
-  }, 2000);
-});
+    setTimeout(() => { pSub.textContent = text; pSub.style.opacity = ''; }, 240);
+  }
 
-/* NEXT STEP HOOK — wire to your upload / OpenAI call */
-function nextStep(files) {
-  pSub.textContent = 'Your brand home is almost ready';
-  console.log('[Moving Day] NEXT STEP HOOK:', files.map(f => f.name));
-}
+  function revealResults() {
+    goToState('review');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function guessClientNameFromFiles(files) {
+    const first = Array.from(files || [])[0]?.name || 'Brand';
+    const base = first
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\b(logo|primary|secondary|final|brand|mark|icon|asset|transparent|white|black|png|jpg|jpeg|svg|webp|v\d+)\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return base ? base.replace(/\b\w/g, c => c.toUpperCase()) : 'Brand';
+  }
+
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('').toUpperCase();
+  }
+
+  function luminance(r, g, b) {
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  }
+
+  async function extractColorsFromImageDataUrl(dataUrl) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const c = document.createElement('canvas');
+          const max = 72;
+          const ratio = Math.min(max / img.naturalWidth, max / img.naturalHeight, 1);
+          c.width = Math.max(1, Math.round(img.naturalWidth * ratio));
+          c.height = Math.max(1, Math.round(img.naturalHeight * ratio));
+          const ctx = c.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          const data = ctx.getImageData(0, 0, c.width, c.height).data;
+          const buckets = new Map();
+
+          for (let i = 0; i < data.length; i += 16) {
+            const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+            if (a < 48) continue;
+            const l = luminance(r, g, b);
+            const sat = Math.max(r, g, b) - Math.min(r, g, b);
+            if (l > 0.94 || l < 0.035 || sat < 12) continue;
+            const qr = Math.round(r / 24) * 24;
+            const qg = Math.round(g / 24) * 24;
+            const qb = Math.round(b / 24) * 24;
+            const key = `${qr},${qg},${qb}`;
+            buckets.set(key, (buckets.get(key) || 0) + 1);
+          }
+
+          const colors = Array.from(buckets.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6)
+            .map(([key]) => {
+              const [r, g, b] = key.split(',').map(Number);
+              return rgbToHex(r, g, b);
+            });
+          resolve(colors);
+        } catch (e) {
+          console.warn('Local color extraction skipped:', e);
+          resolve([]);
+        }
+      };
+      img.onerror = () => resolve([]);
+      img.src = dataUrl;
+    });
+  }
+
+  async function extractLocalPalette(dataUrls) {
+    const found = [];
+    for (const url of dataUrls.slice(0, 6)) {
+      const colors = await extractColorsFromImageDataUrl(url);
+      colors.forEach(hex => { if (!found.includes(hex)) found.push(hex); });
+      if (found.length >= 5) break;
+    }
+
+    const fallback = ['#1F3D2E', '#C4D9CB', '#F1ECDF', '#15140F', '#6B6558'];
+    const palette = (found.length ? found : fallback).slice(0, 5);
+    const names = ['Primary', 'Secondary', 'Light', 'Ink', 'Muted'];
+    return palette.map((hex, i) => ({
+      name: names[i] || `Color ${i + 1}`,
+      hex,
+      usage: i === 0 ? 'Primary brand presence' : i === 1 ? 'Supporting color' : 'System color'
+    }));
+  }
+
+  function buildLocalReviewData(allFiles, analyzable, dataUrls, palette) {
+    const clientName = guessClientNameFromFiles(allFiles);
+    return {
+      reviewMode: 'local',
+      guide: {
+        clientName,
+        category: 'Brand System',
+        description: 'A prepared brand package organized from the files provided.'
+      },
+      brand: {
+        name: clientName,
+        industry: 'Brand System',
+        tone: ['Clean', 'Organized', 'Ready']
+      },
+      palette,
+      typography: {
+        display: { name: 'Inter', weight: '300–500', usage: 'Clean display and interface typography' },
+        body: { name: 'Inter', weight: '300–400', usage: 'Readable supporting copy' }
+      },
+      assetAssignments: allFiles.map((file, index) => ({
+        fileId: `asset_${index + 1}`,
+        slot: guessRole(file.name),
+        rationale: 'Organized locally by filename and file type.'
+      })),
+      preflight: [{
+        severity: 'note',
+        issue: 'Prepared with local organization.',
+        suggestedFix: 'Run the Brand Concierge review when the API route is available for deeper typography, color, and usage recommendations.'
+      }],
+      copySuggestions: {
+        positioning: 'A cleaner, organized brand home prepared from the provided assets.'
+      }
+    };
+  }
+
+  async function requestBrandConciergeReview(analyzable, dataUrls) {
+    const res = await fetch('/api/analyze-brand-files', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        assets: dataUrls.map((url, i) => ({
+          id: analyzable[i].uploadId,
+          name: analyzable[i].file.name,
+          type: analyzable[i].file.type,
+          dataUrl: url
+        }))
+      })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const json = await res.json();
+    json.reviewMode = 'concierge';
+    return json;
+  }
+
+  function organizeOriginalAssets(allFiles, reviewData) {
+    const brandName = reviewData.guide?.clientName || reviewData.brand?.name || 'Brand';
+    return allFiles.map((file, i) => {
+      const uploadId = `asset_${i + 1}`;
+      const aiAssignment = (reviewData.assetAssignments || []).find(a => a.fileId === uploadId);
+      const role = aiAssignment ? resolveRole(aiAssignment.slot) : guessRole(file.name);
+      return {
+        id: crypto.randomUUID(), uploadId, file, url: URL.createObjectURL(file),
+        originalName: file.name, role, label: labelForRole(role), extension: ext(file.name),
+        folder: folderForRole(role), colorName: 'Original',
+        finalName: makeFinalName(brandName, role, 'Original', ext(file.name)),
+      };
+    });
+  }
+
+  async function createColorVariantsForAssets() {
+    const palette = aiData.palette || aiData.colors || [];
+    const primaryHex = palette.find(c => /primary|main|brand/i.test(c.name || ''))?.hex || palette[0]?.hex || '#1F3D2E';
+    const colorVariants = [{hex:'#000000',name:'Black'}, {hex:'#ffffff',name:'White'}, {hex:primaryHex,name:'Primary'}];
+    for (const asset of orgAssets) {
+      if (!isPreviewableImage(asset)) continue;
+      for (const cv of colorVariants) {
+        try { const v = await recolorPng(asset, cv.hex, cv.name); variants.push(v); }
+        catch(e) { console.warn('Variant failed:', asset.originalName, cv.name, e); }
+      }
+    }
+  }
+
+  async function runBrandPipeline(files) {
+    const allFiles = Array.from(files || []);
+    if (!allFiles.length) return;
+
+    btnMovein.disabled = true;
+    btnMovein.style.opacity = '0.42';
+    btnMovein.setAttribute('aria-busy', 'true');
+    $('resultsApp').classList.remove('visible');
+    $('progressStrip').classList.add('visible');
+    $('summaryBar').classList.remove('visible');
+    ['brandSection','assetsSection','variantsSection','jsonSection'].forEach(id => $(id).style.display = 'none');
+    $('brandGrid').innerHTML = '';
+    $('assetGrid').innerHTML = '';
+    $('variantGrid').innerHTML = '';
+    orgAssets = [];
+    variants = [];
+    aiData = null;
+    ['ps1','ps2','ps3','ps4','ps5'].forEach(id => { const el = $(id); el.classList.remove('done','active'); });
+
+    try {
+      setPreparingLine('Reading your files');
+      stepActive(1);
+      const analyzable = allFiles
+        .map((file, index) => ({ file, uploadId: `asset_${index + 1}` }))
+        .filter(item => isAnalyzableFile(item.file));
+
+      if (!analyzable.length) {
+        throw new Error('Please include at least one PNG, JPG, WEBP, or SVG so Moving Day can prepare a visual review.');
+      }
+
+      const dataUrls = await Promise.all(analyzable.map(item => fileToDataUrl(item.file)));
+      stepDone(1);
+
+      setPreparingLine(ANALYSIS_MODE === 'local' ? 'Organizing locally' : 'Reviewing your assets');
+      stepActive(2);
+      try {
+        if (ANALYSIS_MODE === 'local') throw new Error('Local organization requested.');
+        aiData = await requestBrandConciergeReview(analyzable, dataUrls);
+      } catch (apiErr) {
+        if (ANALYSIS_MODE === 'ai') throw apiErr;
+        console.warn('Brand Concierge route unavailable; using local organization:', apiErr);
+        setPreparingLine('Organizing locally');
+        const palette = await extractLocalPalette(dataUrls);
+        aiData = buildLocalReviewData(allFiles, analyzable, dataUrls, palette);
+        aiData.localFallbackReason = String(apiErr?.message || apiErr || 'API route unavailable');
+      }
+      stepDone(2);
+
+      setPreparingLine('Organizing your brand home');
+      stepActive(3);
+      orgAssets = organizeOriginalAssets(allFiles, aiData);
+      stepDone(3);
+
+      setPreparingLine('Preparing your color system');
+      stepActive(4);
+      await createColorVariantsForAssets();
+      stepDone(4);
+
+      setPreparingLine('Arranging your review');
+      stepActive(5);
+      renderBrandSystem();
+      renderAssets();
+      renderVariants();
+      const palette = aiData.palette || aiData.colors || [];
+      $('statFiles').textContent = allFiles.length;
+      $('statVariants').textContent = variants.length;
+      $('statColors').textContent = palette.length;
+      $('summaryBar').classList.add('visible');
+      $('applyBtn').disabled = false;
+      $('zipBtn').disabled = false;
+      $('jsonPre').textContent = JSON.stringify(aiData, null, 2);
+      $('jsonSection').style.display = 'block';
+      stepDone(5);
+
+      setPreparingLine(aiData.reviewMode === 'local' ? 'Your files are organized' : 'Welcome home');
+      setTimeout(revealResults, 700);
+
+    } catch(err) {
+      $('brandGrid').innerHTML = `<div style="grid-column:1/-1;background:rgba(255,245,245,.82);border-radius:18px;padding:20px 24px;border:1px solid rgba(220,53,69,.16)"><p style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#a33a35">Needs attention</p><p style="margin:0;font-size:13px;color:#6b2c2c">${esc(err.message)}</p></div>`;
+      $('brandSection').style.display = 'block';
+      setPreparingLine('A little more is needed');
+      setTimeout(revealResults, 700);
+    } finally {
+      btnMovein.disabled = !staged.length;
+      btnMovein.style.opacity = '';
+      btnMovein.removeAttribute('aria-busy');
+    }
+  }
+
+  // ── APPLY TO BUILDER ──
+  $('applyBtn').addEventListener('click',()=>{
+    if(!aiData){alert('Run an analysis first.');return;}
+    let existing={};
+    try{existing=JSON.parse(localStorage.getItem(BUILDER_KEY)||'{}');}catch(e){}
+    const fields={...(existing.fields||{})};
+    const g=aiData.guide||{};
+    const b=aiData.brand||{};
+    if(g.clientName)fields.clientName=g.clientName;
+    else if(b.name)fields.clientName=b.name;
+    if(g.category)fields.category=g.category;
+    else if(b.industry)fields.category=b.industry;
+    if(g.description)fields.tagline=g.description;
+    const t=aiData.typography||{};
+    if(t.displayFont)fields.displayFont=t.displayFont;
+    else if(t.display?.name)fields.displayFont=t.display.name;
+    if(t.bodyFont)fields.bodyFont=t.bodyFont;
+    else if(t.body?.name)fields.bodyFont=t.body.name;
+    if(t.display?.usage)fields.displayFontNote=t.display.usage;
+    if(t.body?.usage)fields.bodyFontNote=t.body.usage;
+    const palette=aiData.palette||aiData.colors||[];
+    const colors=palette.slice(0,5).map(c=>normalizeHex(c.hex||c.value||c));
+    while(colors.length<5)colors.push('#15140F');
+    fields.colorNames=palette.slice(0,5).map(c=>c.name||'Color').join(', ');
+    const copy=aiData.copySuggestions||{};
+    if(copy.tagline&&!fields.tagline)fields.tagline=copy.tagline;
+    try{localStorage.setItem(BUILDER_KEY,JSON.stringify({...existing,fields,colors}));}
+    catch(e){alert('Could not save — browser storage may be full.');return;}
+    const name=fields.clientName||'this brand';
+    if(confirm(`Apply "${name}" to the builder and open it now?`)){
+      window.location.href='/guide.html';
+    } else {
+      showToast(`Builder pre-filled with ${name}`);
+    }
+  });
+
+  // ── ZIP ──
+  $('zipBtn').addEventListener('click', async ()=>{
+    if(!window.JSZip){alert('JSZip not loaded.');return;}
+    $('zipBtn').textContent='Building...';$('zipBtn').disabled=true;
+    const brandName=cleanName(aiData?.guide?.clientName||aiData?.brand?.name||'Brand');
+    const zip=new JSZip();
+    const root=zip.folder(`${brandName}_Brand_Package`);
+    for(const a of orgAssets){
+      if(!document.querySelector(`.asset-card[data-id="${a.id}"]`)?.classList.contains('ignored')){
+        root.folder(a.folder).file(a.finalName,a.file);
+      }
+    }
+    for(const v of variants){
+      root.folder(`02_Color_Variants/${v.colorName}`).file(v.finalName,v.file);
+    }
+    const palette=aiData?.palette||aiData?.colors||[];
+    if(palette.length){
+      root.folder('03_Color_System').file(`${brandName}_palette.css`,`:root {\n${palette.map(c=>`  --${cleanName(c.name||'color').toLowerCase()}: ${c.hex};`).join('\n')}\n}\n`);
+      root.folder('03_Color_System').file(`${brandName}_palette.txt`,palette.map(c=>`${c.name}: ${c.hex}${c.usage?' — '+c.usage:''}`).join('\n'));
+    }
+    const typo=aiData?.typography;
+    if(typo){
+      root.folder('04_Typography').file(`${brandName}_type_notes.txt`,
+        `Display: ${typo.displayFont||typo.display?.name||'Unknown'}\nUsage: ${typo.display?.usage||''}\n\nBody: ${typo.bodyFont||typo.body?.name||'Unknown'}\nUsage: ${typo.body?.usage||''}\n`);
+    }
+    const usage=aiData?.usage||{};
+    if(usage.do?.length||usage.dont?.length){
+      root.folder('05_Brand_Guide').file(`${brandName}_usage_rules.txt`,
+        ['BRAND USAGE RULES','','DO:',...(usage.do||[]).map(r=>`  ✓ ${r}`),'',"DON'T:",...(usage.dont||[]).map(r=>`  ✕ ${r}`)].join('\n'));
+    }
+    root.folder('05_Brand_Guide').file(`${brandName}_brand_review_data.json`,JSON.stringify(aiData||{},null,2));
+    const copy=aiData?.copySuggestions||{};
+    if(Object.keys(copy).length){
+      root.folder('05_Brand_Guide').file(`${brandName}_copy_suggestions.txt`,Object.entries(copy).map(([k,v])=>`${k.toUpperCase()}:\n${v}`).join('\n\n'));
+    }
+    root.file('README.txt',[`${brandName} Brand Package`,`Generated by Moving Day Studio`,'','01_Logos/           — Original assets','02_Color_Variants/  — Black, White, Primary recolors','03_Color_System/    — Palette CSS + reference','04_Typography/      — Font usage notes','05_Brand_Guide/     — Usage rules, copy, Brand review data','','Review all assets before client delivery.'].join('\n'));
+    const blob=await zip.generateAsync({type:'blob'});
+    downloadBlob(blob,`${brandName}_Brand_Package.zip`);
+    showToast(`${brandName} package downloaded`);
+    $('zipBtn').textContent='Download ZIP';$('zipBtn').disabled=false;
+  });
+
+  // ── RENDER BRAND SYSTEM ──
+  function renderBrandSystem(){
+    const brand=aiData.brand||{};
+    const guide=aiData.guide||{};
+    const palette=aiData.palette||aiData.colors||[];
+    const typo=aiData.typography||{};
+    const preflight=aiData.preflight||[];
+    const copy=aiData.copySuggestions||{};
+    const name=guide.clientName||brand.name||'Unknown brand';
+    const industry=guide.category||brand.industry||'';
+    const tone=brand.tone||[];
+
+    $('brandLabel').textContent=name;
+    const grid=$('brandGrid');
+
+    grid.innerHTML+=`
+      <div class="bcard">
+        <div class="bcard-head"><div><p class="eyebrow">Brand Identity</p><p class="bcard-title">Detected client</p></div></div>
+        <div class="bcard-body">
+          <p class="brand-name-big">${esc(name)}</p>
+          <div class="tag-row">
+            ${industry?`<span class="tag dark">${esc(industry)}</span>`:''}
+            ${tone.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}
+          </div>
+        </div>
+      </div>`;
+
+    const bar=palette.map(c=>`<div class="pb-swatch" style="background:${esc(c.hex)}"></div>`).join('');
+    const swatches=palette.map(c=>`
+      <div class="mini-swatch">
+        <div class="mini-swatch-color" style="background:${esc(c.hex)}"></div>
+        <div class="mini-swatch-info">
+          <span class="mini-swatch-name">${esc(c.name)}</span>
+          <span class="mini-swatch-hex">${esc(c.hex)}</span>
+        </div>
+      </div>`).join('');
+    grid.innerHTML+=`
+      <div class="bcard span2">
+        <div class="bcard-head"><div><p class="eyebrow">Color System</p><p class="bcard-title">Palette</p></div><span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">${palette.length} colors</span></div>
+        <div class="bcard-body"><div class="palette-bar">${bar}</div><div class="mini-swatches">${swatches}</div></div>
+      </div>`;
+
+    const dispB=typo.display?`<div class="type-block"><p class="type-label">Display</p><p class="type-display-sample">${esc(typo.display.name||typo.displayFont||'Unknown')}</p><p class="type-meta">${esc(typo.display.weight||'')} · ${esc(typo.display.usage||'')}</p></div>`:'';
+    const bodyB=typo.body?`<div class="type-block"><p class="type-label">Body / UI</p><p style="font-size:13px;color:var(--ink);margin:0 0 4px;line-height:1.5">The quick brown fox.</p><p class="type-meta">${esc(typo.body.name||typo.bodyFont||'Unknown')} · ${esc(typo.body.weight||'')}</p></div>`:'';
+    grid.innerHTML+=`
+      <div class="bcard">
+        <div class="bcard-head"><div><p class="eyebrow">Typography</p><p class="bcard-title">Type system</p></div></div>
+        <div class="bcard-body"><div class="type-row">${dispB}${bodyB}${!dispB&&!bodyB?`<p style="color:var(--muted);font-size:13px">Not detected.</p>`:''}</div></div>
+      </div>`;
+
+    const copyHTML=Object.entries(copy).map(([k,v])=>`
+      <div style="border-left:2px solid var(--forest);padding:8px 12px;background:#f2ede2;border-radius:0 10px 10px 0;margin-bottom:8px">
+        <p style="margin:0 0 3px;font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--forest)">${esc(k)}</p>
+        <p style="margin:0;font-size:13px;color:var(--ink)">${esc(typeof v==='string'?v:v?.suggested||String(v)||'')}</p>
+      </div>`).join('');
+    grid.innerHTML+=`
+      <div class="bcard">
+        <div class="bcard-head"><div><p class="eyebrow">Copy</p><p class="bcard-title">Brand language</p></div></div>
+        <div class="bcard-body">${copyHTML||`<p style="color:var(--muted);font-size:13px">None returned.</p>`}</div>
+      </div>`;
+
+    const pfHTML=preflight.map(p=>`
+      <div class="pf-row">
+        <span class="pf-badge ${esc((p.severity||'note').toLowerCase())}">${esc(p.severity||'note')}</span>
+        <div><p class="pf-issue">${esc(p.issue||'')}</p><p class="pf-fix">${esc(p.suggestedFix||'')}</p></div>
+      </div>`).join('');
+    grid.innerHTML+=`
+      <div class="bcard span2">
+        <div class="bcard-head"><div><p class="eyebrow">Preflight</p><p class="bcard-title">Issues &amp; flags</p></div><span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">${preflight.length} item${preflight.length!==1?'s':''}</span></div>
+        <div class="bcard-body"><div class="preflight-rows">${pfHTML||`<p style="color:var(--muted);font-size:13px;margin:0">No issues found.</p>`}</div></div>
+      </div>`;
+
+    $('brandSection').style.display='block';
+  }
+
+  // ── RENDER ASSETS ──
+  function renderAssets(){
+    $('assetsLabel').textContent=`${orgAssets.length} file${orgAssets.length!==1?'s':''}`;
+    $('assetGrid').innerHTML=orgAssets.map(a=>`
+      <div class="asset-card" data-id="${esc(a.id)}">
+        <div class="asset-preview">${isPreviewableImage(a)?`<img src="${esc(a.url)}" alt="${esc(a.label)}">`:`<div class="file-fallback">${esc(a.extension || 'file')}</div>`}</div>
+        <div class="asset-info">
+          <p class="asset-role">${esc(a.label)}</p>
+          <p class="asset-folder">${esc(a.folder)}</p>
+          <input class="asset-rename" type="text" value="${esc(a.finalName)}" data-asset-id="${esc(a.id)}" title="Rename file">
+        </div>
+        <div class="asset-actions">
+          <button class="act-btn primary" onclick="downloadAsset('${esc(a.id)}')">Download</button>
+          <button class="act-btn" onclick="ignoreAsset('${esc(a.id)}',this)">Ignore</button>
+        </div>
+      </div>`).join('');
+
+    // Wire rename inputs
+    document.querySelectorAll('.asset-rename').forEach(inp=>{
+      inp.addEventListener('change',e=>{
+        const id=e.target.dataset.assetId;
+        const asset=orgAssets.find(x=>x.id===id);
+        if(asset)asset.finalName=e.target.value.trim()||asset.finalName;
+      });
+    });
+
+    $('assetsSection').style.display='block';
+  }
+
+  // ── RENDER VARIANTS ──
+  function renderVariants(){
+    $('variantsLabel').textContent=`${variants.length} variant${variants.length!==1?'s':''}`;
+    $('variantGrid').innerHTML=variants.map(v=>`
+      <div class="variant-card">
+        <div class="variant-preview ${v.hex==='#ffffff'?'dark-bg':''}">
+          <img src="${esc(v.url)}" alt="${esc(v.label)}">
+        </div>
+        <div class="variant-info">
+          <div class="variant-color-row">
+            <span class="variant-dot" style="background:${esc(v.hex)};${v.hex==='#ffffff'?'border-color:#ccc':''}"></span>
+            <span class="variant-label">${esc(v.sourceLabel)} · ${esc(v.colorName)}</span>
+          </div>
+          <p class="variant-file">${esc(v.finalName)}</p>
+          <button class="variant-dl" onclick="downloadVariant('${esc(v.id)}')">Download</button>
+        </div>
+      </div>`).join('');
+    $('variantsSection').style.display='block';
+  }
+
+  function downloadAsset(id){
+    const a=orgAssets.find(x=>x.id===id);if(!a)return;
+    downloadBlob(a.file,a.finalName);
+  }
+  function ignoreAsset(id,btn){
+    const card=btn.closest('.asset-card');
+    card.classList.toggle('ignored');
+    btn.textContent=card.classList.contains('ignored')?'Restore':'Ignore';
+  }
+  function downloadVariant(id){
+    const v=variants.find(x=>x.id===id);if(!v)return;
+    downloadBlob(v.file,v.finalName);
+  }
+
+  $('jsonToggle').addEventListener('click',()=>{
+    const pre=$('jsonPre');
+    const open=pre.classList.toggle('open');
+    $('jsonToggle').textContent=open?'Hide review data':'Show review data';
+  });
+
+
+/* APP STATE ROUTER: reset without a page refresh. */
+document.getElementById('backToMoveIn').addEventListener('click', event => {
+  event.preventDefault();
+  event.stopPropagation();
+  staged = [];
+  renderTray();
+  goToState('welcome');
+});
 </script>
 </body>
 </html>
