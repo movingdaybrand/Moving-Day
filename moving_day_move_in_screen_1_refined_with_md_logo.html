@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Moving Day</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,200;14..32,300;14..32,400;14..32,500&display=swap" rel="stylesheet" />
+<style>
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ENVIRONMENT
+   Abstract product environment — not a room, not a scene.
+   Frosted light, soft depth, atmospheric glass planes.
+   Apple setup / VisionOS energy.
+═══════════════════════════════════════════════════════ */
+
+.env {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  /* Base: clearer ice white with a very soft Moving Day sage undertone */
+  background: #f3f7f3;
+  transition: filter 1.4s ease;
+  overflow: hidden;
+}
+
+/* Near-invisible glass atmosphere — gives depth without becoming a card or room */
+.env::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: min(980px, 76vw);
+  height: min(620px, 62vh);
+  transform: translate(-50%, -50%);
+  border-radius: 54px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.09)),
+    radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.46), transparent 62%);
+  border: 0.5px solid rgba(255,255,255,0.48);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.70),
+    inset 0 -1px 0 rgba(55,95,70,0.035),
+    0 40px 120px rgba(42,82,58,0.055);
+  opacity: 0.46;
+  pointer-events: none;
+}
+
+.env::after {
+  content: '';
+  position: absolute;
+  inset: -16%;
+  background:
+    linear-gradient(118deg, transparent 0 32%, rgba(255,255,255,0.30) 43%, transparent 54%),
+    linear-gradient(90deg, transparent 0 46%, rgba(190,220,208,0.12) 50%, transparent 56%);
+  filter: blur(22px);
+  opacity: 0.36;
+  transform: translate3d(-2%, -1%, 0);
+  animation: ambientShift 16s cubic-bezier(0.22,1,0.36,1) infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes ambientShift {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); opacity: 0.30; }
+  to   { transform: translate3d(2%, 1.5%, 0) scale(1.025); opacity: 0.44; }
+}
+
+/* Layered light planes — abstract, not spatial */
+.env-l1 {
+  position: absolute;
+  inset: 0;
+  background:
+    /* Morning light through frosted glass */
+    radial-gradient(ellipse 120% 88% at 50% -18%,
+      rgba(255,255,255,1.0)    0%,
+      rgba(251,254,252,0.90)  30%,
+      rgba(232,244,238,0.44)  56%,
+      transparent              76%),
+    /* Icy blue-green lift — barely there */
+    radial-gradient(ellipse 62% 58% at 0% 96%,
+      rgba(178,218,210,0.30)   0%,
+      transparent              62%),
+    /* Restrained emerald depth */
+    radial-gradient(ellipse 46% 48% at 102% 28%,
+      rgba(146,188,164,0.22)   0%,
+      transparent              60%),
+    /* Soft base glow */
+    radial-gradient(ellipse 96% 38% at 50% 118%,
+      rgba(134,178,154,0.26)   0%,
+      transparent              64%);
+}
+
+/* Glass plane 1 — wide horizontal band, mid-screen, barely visible */
+.env-g1 {
+  position: absolute;
+  top: 39%; left: -4%; right: -4%;
+  height: 24%;
+  background: linear-gradient(180deg,
+    transparent                           0%,
+    rgba(255,255,255,0.11)               34%,
+    rgba(245,252,248,0.20)               50%,
+    rgba(255,255,255,0.09)               66%,
+    transparent                          100%);
+  border-top: 0.5px solid rgba(255,255,255,0.54);
+  border-bottom: 0.5px solid rgba(82,126,96,0.035);
+  transform: skewY(-1.15deg);
+  pointer-events: none;
+}
+
+/* Glass plane 2 — narrower, offset — cross-light */
+.env-g2 {
+  position: absolute;
+  top: 58%; left: -6%; right: -6%;
+  height: 13%;
+  background: linear-gradient(180deg,
+    transparent                           0%,
+    rgba(207,232,222,0.13)               48%,
+    transparent                          100%);
+  border-top: 0.5px solid rgba(214,238,226,0.28);
+  transform: skewY(0.65deg);
+  pointer-events: none;
+}
+
+/* Vignette — soft, product-focused. Pulls center forward. */
+.env-v {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 86% 78% at 50% 48%,
+    transparent              50%,
+    rgba(58,96,72,0.055)     74%,
+    rgba(28,58,42,0.12)      100%);
+}
+
+/* Ambient center glow — extremely subtle warm center */
+.env-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 58% 48% at 50% 47%, rgba(255,255,255,0.32) 0%, transparent 68%),
+    radial-gradient(ellipse 44% 24% at 50% 66%, rgba(190,220,204,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+body.dragging .env { filter: brightness(1.03) saturate(1.06); }
+
+
+/* ═══════════════════════════════════════════════════════
+   STAGE
+═══════════════════════════════════════════════════════ */
+.stage {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOVE IN INTRO
+═══════════════════════════════════════════════════════ */
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+  position: relative;
+  isolation: isolate;
+}
+
+/* ── LOGO MARK
+   Integrated frosted brand chip — proprietary, quiet, not a placeholder badge.
+────────────────────────────────────────────────────── */
+.logo-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 1.05rem;
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.78), rgba(248,253,250,0.44)),
+    rgba(255,255,255,0.34);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,0.95),
+    0 0 0 1px rgba(36,76,52,0.075),
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    inset 0 -1px 0 rgba(36,76,52,0.035),
+    0 10px 30px rgba(30,70,48,0.075),
+    0 22px 52px rgba(30,70,48,0.045);
+  opacity: 0;
+  transform: translateY(8px);
+  animation: rise 1.1s cubic-bezier(0.22,1,0.36,1) 0.15s forwards;
+}
+
+.logo-badge::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: inherit;
+  border: 0.5px solid rgba(255,255,255,0.62);
+  pointer-events: none;
+}
+
+.logo-badge::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 15px;
+  right: 15px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.82), transparent);
+  pointer-events: none;
+}
+
+.logo-mark {
+  display: block;
+  width: 38px;
+  height: 27px;
+  fill: rgba(20,41,31,0.88);
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,0.55));
+}
+
+/* ── WORDMARK ─────────────────────────────────────── */
+.wordmark {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgba(18,46,28,0.52);
+  margin-bottom: 3.1rem;
+
+  opacity: 0;
+  animation: rise 1s cubic-bezier(0.22,1,0.36,1) 0.38s forwards;
+}
+
+/* ── HEADLINE ─────────────────────────────────────── */
+.headline {
+  font-size: clamp(2.95rem, 5.9vw, 4.45rem);
+  font-weight: 300;
+  line-height: 1.105;
+  letter-spacing: -0.052em;
+  color: rgba(8,30,18,0.90);
+  margin-bottom: 1.15rem;
+}
+
+.headline .home {
+  color: rgba(10,30,18,0.52);
+}
+
+.w {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: rise 0.9s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
+/* ── SUBHEADLINE ─────────────────────────────────── */
+.sub {
+  font-size: 0.94rem;
+  font-weight: 300;
+  line-height: 1.62;
+  letter-spacing: -0.006em;
+  color: rgba(14,40,22,0.62);
+  margin-bottom: 3.25rem;
+
+  opacity: 0;
+  animation: rise 0.9s cubic-bezier(0.22,1,0.36,1) 1.18s forwards;
+}
+
+/* ── BEGIN CTA — floating glass pill ─────────────── */
+.btn-begin {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.88rem 2.28rem;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 450;
+  letter-spacing: 0.09em;
+  color: rgba(8,28,16,0.90);
+  background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(248,253,250,0.82));
+  backdrop-filter: blur(30px) saturate(165%);
+  -webkit-backdrop-filter: blur(30px) saturate(165%);
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,0.98),
+    0 0 0 1px rgba(44,92,62,0.24),
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -0.5px 0 rgba(44,90,60,0.065),
+    0 2px 8px rgba(20,60,36,0.10),
+    0 10px 28px rgba(20,60,36,0.11),
+    0 24px 56px rgba(20,60,36,0.08);
+  position: relative;
+  overflow: hidden;
+  transition: background 0.25s ease, box-shadow 0.28s ease, transform 0.18s ease;
+
+  opacity: 0;
+  animation: rise 0.9s cubic-bezier(0.22,1,0.36,1) 1.46s forwards;
+}
+
+.btn-begin:hover {
+  background: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(250,255,252,0.88));
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,1),
+    0 0 0 1px rgba(44,100,66,0.34),
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -0.5px 0 rgba(44,90,60,0.08),
+    0 4px 12px rgba(20,60,36,0.13),
+    0 14px 34px rgba(20,60,36,0.13),
+    0 30px 64px rgba(20,60,36,0.09);
+}
+.btn-begin:active { transform: scale(0.978); transition-duration: 0.08s; }
+
+.btn-begin::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.30), transparent);
+  transition: left 0.7s ease;
+}
+.btn-begin:hover::after { left: 160%; }
+
+.arrow {
+  width: 12px; height: 12px;
+  stroke: rgba(8,28,16,0.42);
+  stroke-width: 1.5; fill: none;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: transform 0.22s ease; flex-shrink: 0;
+}
+.btn-begin:hover .arrow { transform: translateX(2px); }
+
+
+/* ═══════════════════════════════════════════════════════
+   UPLOAD STATE
+═══════════════════════════════════════════════════════ */
+.upload {
+  position: fixed; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  padding: 2rem; opacity: 0; pointer-events: none;
+  transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1);
+}
+.upload.on { opacity: 1; pointer-events: all; }
+
+.glass {
+  width: 100%; max-width: 480px;
+  border-radius: 24px; position: relative; overflow: hidden;
+  background: rgba(255,255,255,0.68);
+  backdrop-filter: blur(48px) saturate(180%);
+  -webkit-backdrop-filter: blur(48px) saturate(180%);
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,0.96),
+    0 0 0 1px rgba(44,90,60,0.13),
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -0.5px 0 rgba(30,70,44,0.04),
+    0 4px 12px rgba(20,60,36,0.07),
+    0 16px 48px rgba(20,60,36,0.10),
+    0 40px 80px rgba(20,60,36,0.08);
+  transition:
+    transform 0.55s cubic-bezier(0.22,1,0.36,1),
+    box-shadow 0.55s ease;
+}
+
+body.dragging .glass {
+  transform: translateY(-5px);
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,1),
+    0 0 0 1px rgba(44,140,84,0.28),
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 8px 20px rgba(20,60,36,0.09),
+    0 24px 60px rgba(20,60,36,0.15),
+    0 0 40px rgba(60,160,100,0.09);
+}
+
+.drop-zone {
+  position: absolute; inset: 0; z-index: 4;
+  border-radius: 24px; cursor: default;
+}
+.drop-input {
+  position: absolute; inset: 0; opacity: 0;
+  cursor: pointer; font-size: 0;
+}
+
+.glass-inner {
+  position: relative; z-index: 3;
+  padding: 2.75rem 2.75rem 2.5rem;
+  display: flex; flex-direction: column;
+  align-items: center; text-align: center;
+}
+
+.up-icon {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255,255,255,0.75);
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,0.92),
+    0 0 0 1px rgba(44,90,60,0.10),
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 2px 8px rgba(20,60,36,0.07);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1.5rem;
+  transition: transform 0.45s cubic-bezier(0.22,1,0.36,1);
+}
+body.dragging .up-icon { transform: translateY(-3px); }
+.up-icon svg {
+  width: 16px; height: 16px;
+  stroke: rgba(16,46,26,0.50);
+  stroke-width: 1.5; fill: none;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+.up-head {
+  font-size: 1.5rem; font-weight: 200;
+  letter-spacing: -0.025em; line-height: 1.14;
+  color: rgba(8,28,16,0.85); margin-bottom: 0.85rem;
+}
+.up-sub {
+  font-size: 0.815rem; font-weight: 300; line-height: 1.80;
+  color: rgba(14,42,24,0.44); max-width: 300px; margin-bottom: 2rem;
+}
+
+.drag-copy { display: none; }
+body.dragging .normal-copy { display: none; }
+body.dragging .drag-copy   { display: block; }
+body.dragging .file-tags   { opacity: 0.22; }
+
+.file-tags {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  justify-content: center; margin-bottom: 2rem;
+  transition: opacity 0.35s;
+}
+.f-tag {
+  font-size: 9px; font-weight: 400; letter-spacing: 0.09em;
+  text-transform: uppercase; color: rgba(16,46,26,0.38);
+  padding: 3px 9px; border-radius: 100px;
+  background: rgba(255,255,255,0.55);
+  border: 0.5px solid rgba(44,90,60,0.14);
+}
+
+.btn-movein {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.85rem 2.2rem; border: none; border-radius: 100px;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+  font-size: 0.76rem; font-weight: 400; letter-spacing: 0.09em;
+  color: rgba(8,28,16,0.88);
+  background: rgba(255,255,255,0.90);
+  backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,0.98),
+    0 0 0 1px rgba(44,90,60,0.22),
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 2px 8px rgba(20,60,36,0.10),
+    0 8px 24px rgba(20,60,36,0.09);
+  position: relative; overflow: hidden;
+  transition: background 0.25s ease, box-shadow 0.28s ease, transform 0.18s ease, opacity 0.3s;
+}
+.btn-movein:disabled { opacity: 0.28; pointer-events: none; }
+.btn-movein:not(:disabled):hover {
+  background: rgba(255,255,255,0.97);
+  transform: translateY(-1px);
+}
+.btn-movein:active { transform: scale(0.978); }
+.btn-movein::after {
+  content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.30), transparent);
+  transition: left 0.7s ease;
+}
+.btn-movein:hover::after { left: 160%; }
+
+.up-micro {
+  font-size: 10px; font-weight: 300; letter-spacing: 0.02em;
+  color: rgba(14,42,24,0.28); margin-top: 0.75rem;
+}
+
+.status {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; height: 18px; margin-top: 1rem;
+  opacity: 0; transition: opacity 0.5s;
+}
+.status.on { opacity: 1; }
+.s-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(30,90,52,0.45);
+  animation: pulse 2.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 0.2; transform: scale(0.75); }
+  50%      { opacity: 0.85; transform: scale(1.2); }
+}
+.s-txt { font-size:10px; font-weight:300; letter-spacing:0.07em; color: rgba(14,42,24,0.40); }
+
+.tray { width:100%; display:none; flex-direction:column; gap:4px; margin-top:0.5rem; }
+.tray.on { display:flex; }
+.ti {
+  display:flex; align-items:center; gap:8px;
+  background: rgba(255,255,255,0.52); border-radius:8px; padding:6px 10px;
+  border: 0.5px solid rgba(44,90,60,0.12);
+  font-size:11px; font-weight:300; color: rgba(14,42,24,0.56);
+}
+.ti svg { width:12px; height:12px; stroke: rgba(14,42,24,0.32); stroke-width:1.5; fill:none; flex-shrink:0; }
+.tn { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ts { font-size:9.5px; opacity:0.38; flex-shrink:0; }
+
+/* ── PREPARING HOOK ─────────────────────────────── */
+.preparing {
+  position:absolute; inset:0; border-radius:24px;
+  background: rgba(242,248,244,0.93);
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:1.5rem;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.7s ease; z-index:10;
+}
+.preparing.on { opacity:1; pointer-events:all; }
+.p-ring {
+  width:34px; height:34px; border-radius:50%;
+  border:1px solid rgba(16,52,28,0.10);
+  border-top-color: rgba(16,52,28,0.38);
+  animation: spin 2s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.p-head { font-size:1.3rem; font-weight:200; letter-spacing:-0.02em; color: rgba(8,28,16,0.82); }
+.p-sub { font-size:10px; font-weight:400; letter-spacing:0.14em; text-transform:uppercase; color: rgba(14,42,24,0.34); transition:opacity 0.4s; }
+
+/* ── KEYFRAMES ──────────────────────────────────── */
+@keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 520px) {
+  .glass-inner { padding: 2.25rem 1.75rem; }
+  .headline { font-size: 2.4rem; }
+  .logo-badge { width: 56px; height: 56px; }
+  .logo-mark { width: 34px; height: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo-badge, .wordmark, .w, .sub, .btn-begin { animation: none; opacity: 1; transform: none; }
+  .s-dot, .p-ring { animation: none; }
+  .upload { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ ENVIRONMENT ════════════════════════════════════ -->
+<div class="env" aria-hidden="true">
+  <div class="env-l1"></div>
+  <div class="env-g1"></div>
+  <div class="env-g2"></div>
+  <div class="env-glow"></div>
+  <div class="env-v"></div>
+</div>
+
+<!-- ══ MOVE IN INTRO ══════════════════════════════════ -->
+<div class="stage" id="intro" role="main" aria-label="Moving Day">
+  <div class="intro">
+
+    <!-- LOGO MARK — Moving Day deep forest icon, embedded inline for preview -->
+    <div class="logo-badge" aria-hidden="true">
+      <svg class="logo-mark" viewBox="596 85 178 122" role="img" aria-label="Moving Day mark" xmlns="http://www.w3.org/2000/svg">
+        <path d="M769.4,89.65v111.85h-39.04c.07-25.79-35.02-31.29-50.28-36.68-16.18-5.71,0-14.05,0-14.05l89.32-61.11Z"/>
+        <path d="M675.81,201.5h-79.21v-111.85l75.54,48.92c1.69,1.09,1.48,3.62-.36,4.43-12.29,5.34-43.75,21.42-9.35,32.79,25.59,8.46,20.29,25.71,13.38,25.71Z"/>
+      </svg>
+    </div>
+
+    <!-- WORDMARK -->
+    <p class="wordmark">Moving Day</p>
+
+    <!-- HEADLINE -->
+    <h1 class="headline" id="headline" aria-label="Every brand deserves a home."></h1>
+
+    <!-- SUBHEADLINE -->
+    <p class="sub">Move everything in. We'll prepare the rest.</p>
+
+    <!-- BEGIN CTA -->
+    <button class="btn-begin" id="btn-begin" aria-label="Move In">
+      Move In
+      <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="13 6 19 12 13 18"/>
+      </svg>
+    </button>
+
+  </div>
+</div>
+
+<!-- ══ UPLOAD STATE ═══════════════════════════════════ -->
+<div class="upload" id="upload" aria-hidden="true">
+  <div class="glass" id="glass">
+
+    <!-- PREPARING HOOK -->
+    <div class="preparing" id="preparing" aria-live="polite">
+      <div class="p-ring" aria-hidden="true"></div>
+      <p class="p-head">Preparing your brand…</p>
+      <p class="p-sub" id="p-sub">Reviewing your assets</p>
+    </div>
+
+    <!-- Full-panel drop zone — no border, no visible box -->
+    <div class="drop-zone" id="drop-zone" aria-label="Drop brand assets anywhere">
+      <input class="drop-input" type="file" id="file-input" multiple
+        accept=".pdf,.png,.jpg,.jpeg,.svg,.gif,.webp,.ai,.eps,.zip,.ttf,.otf,.woff,.woff2,.pptx,.docx,.xlsx,.mp4,.mov,.sketch,.fig"
+        tabindex="-1" aria-label="Choose brand files" />
+    </div>
+
+    <div class="glass-inner">
+      <div class="up-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <polyline points="16 16 12 12 8 16"/>
+          <line x1="12" y1="12" x2="12" y2="21"/>
+          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+        </svg>
+      </div>
+
+      <div class="normal-copy">
+        <p class="up-head">Move your brand in.</p>
+        <p class="up-sub">Drop your logos, guidelines, fonts, photography,<br>presentations, websites, PDFs, and every brand asset here.</p>
+      </div>
+      <div class="drag-copy">
+        <p class="up-head">Drop your brand anywhere.</p>
+        <p class="up-sub">The door is open.</p>
+      </div>
+
+      <div class="file-tags">
+        <span class="f-tag">Logos</span>
+        <span class="f-tag">Fonts</span>
+        <span class="f-tag">Guidelines</span>
+        <span class="f-tag">Photography</span>
+        <span class="f-tag">PDFs</span>
+        <span class="f-tag">Presentations</span>
+        <span class="f-tag">Websites</span>
+      </div>
+
+      <button class="btn-movein" id="btn-movein" disabled aria-label="Move In">
+        Move In
+        <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="13 6 19 12 13 18"/>
+        </svg>
+      </button>
+
+      <p class="up-micro">Your assets stay secure, private, and organized.</p>
+
+      <div class="status" id="status">
+        <div class="s-dot" aria-hidden="true"></div>
+        <span class="s-txt" id="s-txt"></span>
+      </div>
+
+      <div class="tray" id="tray" role="list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Headline word animation ── */
+(function() {
+  const el = document.getElementById('headline');
+  const config = [
+    { t:'Every',    home:false, d:0.55 },
+    { t:'brand',    home:false, d:0.67 },
+    { t:'deserves', home:false, d:0.83 },
+    { t:'a',        home:false, d:0.95 },
+    { t:'home.',    home:true,  d:1.05 },
+  ];
+  const l1 = document.createElement('div');
+  const l2 = document.createElement('div');
+  config.forEach(c => {
+    const s = document.createElement('span');
+    s.className = 'w' + (c.home ? ' home' : '');
+    s.textContent = c.t + '\u00A0';
+    s.style.animationDelay = c.d + 's';
+    (c.t === 'deserves' || c.t === 'a' || c.t === 'home.') ? l2.appendChild(s) : l1.appendChild(s);
+  });
+  el.appendChild(l1);
+  el.appendChild(l2);
+})();
+
+/* ── Move In → Upload state ── */
+const intro    = document.getElementById('intro');
+const upload   = document.getElementById('upload');
+const btnBegin = document.getElementById('btn-begin');
+
+btnBegin.addEventListener('click', () => {
+  intro.style.transition    = 'opacity 0.45s ease';
+  intro.style.opacity       = '0';
+  intro.style.pointerEvents = 'none';
+  setTimeout(() => {
+    intro.setAttribute('aria-hidden', 'true');
+    upload.setAttribute('aria-hidden', 'false');
+    upload.classList.add('on');
+  }, 420);
+});
+
+/* ── UPLOAD HOOK ── */
+let staged      = [];
+const fmt       = b => b < 1048576 ? Math.round(b/1024)+' KB' : (b/1048576).toFixed(1)+' MB';
+const btnMovein = document.getElementById('btn-movein');
+const status    = document.getElementById('status');
+const sTxt      = document.getElementById('s-txt');
+const tray      = document.getElementById('tray');
+const fileInput = document.getElementById('file-input');
+
+function renderTray() {
+  if (!staged.length) {
+    tray.classList.remove('on'); tray.innerHTML = '';
+    btnMovein.disabled = true; status.classList.remove('on'); return;
+  }
+  tray.classList.add('on');
+  tray.innerHTML = staged.map(f => `
+    <div class="ti" role="listitem">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span class="tn">${f.name}</span><span class="ts">${fmt(f.size)}</span>
+    </div>`).join('');
+  btnMovein.disabled = false;
+  status.classList.add('on');
+  sTxt.textContent = staged.length === 1 ? '1 asset ready' : `${staged.length} assets ready`;
+}
+
+function addFiles(list) {
+  Array.from(list).forEach(f => {
+    if (!staged.find(s => s.name===f.name && s.size===f.size)) staged.push(f);
+  });
+  renderTray();
+}
+
+/* DRAG OVER STATE */
+let dc = 0;
+document.addEventListener('dragenter', e => { e.preventDefault(); dc++; document.body.classList.add('dragging'); });
+document.addEventListener('dragleave', () => { dc--; if (dc<=0) { dc=0; document.body.classList.remove('dragging'); } });
+document.addEventListener('dragover',  e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault(); dc=0; document.body.classList.remove('dragging');
+  if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+});
+
+fileInput.addEventListener('change', () => { if (fileInput.files.length) addFiles(fileInput.files); fileInput.value=''; });
+document.getElementById('drop-zone').addEventListener('click', () => fileInput.click());
+
+/* ── PREPARING HOOK ── */
+const preparing = document.getElementById('preparing');
+const pSub      = document.getElementById('p-sub');
+const lines = [
+  'Reviewing your assets',
+  'Organising your files',
+  'Understanding your visual language',
+  'Preparing your colour system',
+  'Cataloguing your typography',
+  'Arranging your brand home',
+  'Almost ready to welcome you',
+];
+
+btnMovein.addEventListener('click', () => {
+  if (!staged.length) return;
+  preparing.classList.add('on');
+  let i = 0;
+  const cycle = setInterval(() => {
+    i++;
+    if (i >= lines.length) { clearInterval(cycle); nextStep(staged); return; }
+    pSub.style.opacity = '0';
+    setTimeout(() => { pSub.textContent = lines[i]; pSub.style.opacity = ''; }, 350);
+  }, 2000);
+});
+
+/* NEXT STEP HOOK — wire to your upload / OpenAI call */
+function nextStep(files) {
+  pSub.textContent = 'Your brand home is almost ready';
+  console.log('[Moving Day] NEXT STEP HOOK:', files.map(f => f.name));
+}
+</script>
+</body>
+</html>
