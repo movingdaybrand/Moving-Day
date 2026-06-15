@@ -1,1 +1,84 @@
-
+{
+  "pages": {
+    "brand_home": {
+      "kicker": "Brand Home",
+      "title": "{brandName} is ready to arrange.",
+      "body": "I’ll turn the confirmed foundation into a calm home for logos, colors, type, reference files, downloads, and usage notes.",
+      "pills": ["{assetCount} assets", "{colorCount} colors", "{logoCount} logo files", "Founder tools hidden"],
+      "actions": [
+        { "label": "Review Logos", "target": "logos", "style": "primary" },
+        { "label": "Color System", "target": "colors" }
+      ],
+      "cards": [
+        { "label": "01", "title": "Logo Library", "body": "Primary logos, icon marks, wordmarks, and alternates live together instead of being scattered across folders.", "meta": "{logoCount} logo-related assets" },
+        { "label": "02", "title": "Color System", "body": "The detected palette becomes a usable system with primary, supporting, background, and text roles.", "meta": "{colorCount} colors prepared" },
+        { "label": "03", "title": "Typography", "body": "Fonts and type guesses are documented clearly, even when the original files are incomplete.", "meta": "{fontCount} font/reference items" },
+        { "label": "04", "title": "Downloads", "body": "The final package stays available for export once the system is approved.", "meta": "ZIP and builder handoff stay in Founder Mode" }
+      ]
+    },
+    "logos": {
+      "kicker": "Brand Home / Logos",
+      "title": "Start with the identity system.",
+      "body": "This page keeps the logo family focused: primary logo, icon mark, wordmark, and supporting alternates.",
+      "pills": ["Primary logo", "Icon mark", "Wordmark", "Alternates"],
+      "actions": [
+        { "label": "Back to Brand Home", "target": "brand_home" },
+        { "label": "Next: Colors", "target": "colors", "style": "primary" }
+      ],
+      "cards": [
+        { "label": "01", "title": "Primary Logo", "body": "The lead identity asset for covers, headers, and key brand moments." },
+        { "label": "02", "title": "Icon Mark", "body": "The small-space mark for profiles, favicons, social avatars, and app-like usage." },
+        { "label": "03", "title": "Wordmark", "body": "The type-led version of the identity, used where clarity matters most." },
+        { "label": "04", "title": "Alternates", "body": "Secondary crops, lockups, and supporting files stay organized below the core system." }
+      ]
+    },
+    "colors": {
+      "kicker": "Brand Home / Colors",
+      "title": "Build the palette into a system.",
+      "body": "Detected colors become roles the customer can understand and reuse — not just random swatches.",
+      "pills": ["Primary", "Supporting", "Background", "Text", "Accent"],
+      "actions": [
+        { "label": "Back to Logos", "target": "logos" },
+        { "label": "Next: Assets", "target": "assets", "style": "primary" }
+      ],
+      "cards": [
+        { "label": "01", "title": "Primary Color", "body": "The color that carries the strongest brand recognition." },
+        { "label": "02", "title": "Supporting Colors", "body": "Secondary colors for layouts, sections, and visual rhythm." },
+        { "label": "03", "title": "Backgrounds", "body": "Light and dark environments prepared for practical use." },
+        { "label": "04", "title": "Usage Notes", "body": "Simple direction for when colors should and should not be used." }
+      ]
+    },
+    "assets": {
+      "kicker": "Brand Home / Assets",
+      "title": "Separate visuals from references.",
+      "body": "This page explains what is usable brand artwork versus what should be treated as reference material.",
+      "pills": ["Visual assets", "Reference files", "Guidelines", "Documents"],
+      "actions": [
+        { "label": "Back to Colors", "target": "colors" },
+        { "label": "Downloads", "target": "downloads", "style": "primary" }
+      ],
+      "cards": [
+        { "label": "01", "title": "Visual Assets", "body": "Logos, marks, photography, screenshots, and graphics ready for placement." },
+        { "label": "02", "title": "Reference Files", "body": "Decks, PDFs, notes, and documents that inform the system without becoming visual assets." },
+        { "label": "03", "title": "Guidelines", "body": "Any existing rules or brand standards kept as source material." },
+        { "label": "04", "title": "Needs Attention", "body": "Anything missing, low-resolution, duplicated, or unclear can be flagged here." }
+      ]
+    },
+    "downloads": {
+      "kicker": "Brand Home / Downloads",
+      "title": "Package the system when it is ready.",
+      "body": "Downloads are the final handoff layer. Keep the customer view calm and expose the technical controls only when needed.",
+      "pills": ["Logo package", "Color notes", "Typography notes", "Usage rules"],
+      "actions": [
+        { "label": "Back to Brand Home", "target": "brand_home", "style": "primary" },
+        { "label": "Founder ZIP", "target": "zip" }
+      ],
+      "cards": [
+        { "label": "01", "title": "Logo Package", "body": "Clean originals and export-ready variants prepared for delivery." },
+        { "label": "02", "title": "Brand Notes", "body": "Color, typography, and usage recommendations in one place." },
+        { "label": "03", "title": "Reference Archive", "body": "Supporting files preserved separately from the visual system." },
+        { "label": "04", "title": "Final Handoff", "body": "Everything can be zipped, shared, or pushed into the builder from Founder Mode." }
+      ]
+    }
+  }
+}
